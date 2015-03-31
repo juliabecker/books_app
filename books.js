@@ -51,6 +51,9 @@ server.on('connection', function(client) {
         case 'log_out':
             logOut(client);
             break;
+        default:
+            getHelp(client);
+            break;
     }
         });
 });
