@@ -4,6 +4,7 @@
 
 var net = require('net');
 var fs = require('fs');
+var colors = require('colors');
 
 var dataFile = "./data.json";
 var userArray = JSON.parse(fs.readFileSync(dataFile, 'utf8'));
@@ -21,7 +22,8 @@ var username;
 server.on('connection', function(client) {
   console.log('client connected'); 
   client.setEncoding('utf8');
-  client.write("\nWelcome to the Books App!\nExisting users, please type 'user [your username]' to access your account.\nNew users, enter new_user [new username] to create a new account. To log out, type 'log_out'>\n");
+  client.write(colors.bold("\nWelcome to the Books App!\n\n"));
+  client.write("Existing users, please type 'user YOUR USERNAME' to access your account.\nNew users, enter new_user NEW USERNAME (one word) to create a new account.\n\n");
 
   client.on('data', function(stringFromClient) {
     inputArray = stringFromClient.split(' ');
@@ -35,59 +37,19 @@ server.on('connection', function(client) {
             getUser(inputArray[1], client);
             break;
         case 'add':
-            if (inputArray.length > 1) {
-                if (user === undefined) {
-                client.write("Please sign in before adding books to your account. Type 'user [username] to access an existing account or 'new_user [username]' to create a new account.\n")
-
-                // User is signed in - Add book to their list
-                } else {
-                    var title = "";
-                    for (i = 1; i < inputArray.length; i++) {
-                        title += inputArray[i].trim() + " ";
-                    }
-                    var book = {title: title.trim()}
-                    user.books.push(book);
-
-                    // Save book to data file under user's account
-                    for (i = 0; i < userArray.length; i++) {
-                        if (userArray[i].username === user.username) {
-                            userArray[i] = user;
-                        }
-                    }
-                    save(userArray);
-                    client.write(username + "-" + title + "has been added to your recommended books list.\n")
-                }
-            }
-            // } else {
-            //     client.write("Please add a title for the book you'd like to add.")
-            // }
+            add(client);
             break;
         case 'my_books':
-            client.write("\nYou recommend:\n\n")
-
-            for (i = 0; i < userArray.length; i++) {
-                if (userArray[i].username === username) { // Display only current users books
-                    var myBooks = userArray[i].books;
-                    for (j = 0; j < myBooks.length; j++) {
-                        client.write(myBooks[j].title + "\n")
-                    }
-                }
-            }
+            myBooks(client);
             break;
         case 'view_recommended':
-            client.write("\nUsers recommend:\n\n")
-
-            for (i = 0; i < userArray.length; i++) {
-                if (userArray[i].username != username) { // Don't display current users books
-                    for (j = 0; j < userArray[i].books.length; j++) {
-                        client.write(userArray[i].books[j].title + "\n");
-                    }
-                }
-            }
+            showRecommended(client);
+            break;
+        case 'help':
+            getHelp(client);
             break;
         case 'log_out':
-            client.write("Goodbye " + username + "!\n");
-            client.end();
+            logOut(client);
             break;
     }
         });
@@ -101,7 +63,8 @@ function newUser(str, client) {
         userArray.push(user);
         save(userArray);
 
-        client.write("Thanks " + username + "! Your account has successfully been created. To add a book you recommend, please type 'add [book name]'. Or to view recommended books across all users, type 'view_recommended'.\n");
+        client.write(colors.bold("\nWelcome " + username + "!\n\n"));
+        client.write("Your account has successfully been created.\n\nTo add a book you recommend,  type 'add [book name]'.\nOr to view recommended books across all users, type 'view_recommended'.\n\n");
 
     } else if (inputArray.length !== 2) {
         client.write("Please enter a one word username.\n");
@@ -115,12 +78,84 @@ function getUser(str, client) {
         for (i = 0; i < userArray.length; i++) {
             if (username === userArray[i].username) {
                 user = userArray[i];
-                    client.write("Welcome " + username + "!\nTo view all your recommended books, type 'my_books' in the console. Or if you would like to view books recommended by other users, type 'view_recommended'\n");
+                client.write(colors.bold("\nWelcome " + username + "!\n\n"));
+                client.write("To view all your recommended books, type 'my_books' in the console.\nTo add a book, type 'add book title'.\nOr if you would like to view books recommended by other users, type 'view_recommended'\n\n");
             } else if (user === {}) {
-                client.write("Sorry, it looks like that username doesn't exist. Create a new account by typing 'new_user [username]\n");
+                client.write("Sorry, it looks like that username doesn't exist. Create a new account by typing 'new_user [username]\n\n");
+            }
+        }
+    } else {
+        client.write("Please enter your username to login.\n\n")
+    }
+}
+
+function add(client) {
+
+    if (inputArray.length > 1) {
+        // User not signed in
+        if (user === undefined) { 
+            client.write("Please sign in before adding books to your account. Type 'user [username] to access an existing account or 'new_user [username]' to create a new account.\n\n")
+        // User is signed in - Add book to their list
+        } else { 
+            var title = "";
+            for (i = 1; i < inputArray.length; i++) {
+            title += inputArray[i].trim() + " ";
+        }
+        var book = {title: title.trim()}
+        user.books.push(book);
+
+        // Save book to data file under user's account
+        for (i = 0; i < userArray.length; i++) {
+            if (userArray[i].username === user.username) {
+                userArray[i] = user;
+            }
+        }
+        
+        save(userArray);
+        client.write(username + " - " + title + "has been added to your recommended books list.\n\n")
+        }
+
+    // User didn't add a book title
+    } else {
+        client.write("Please enter a book title for the book you would like to add. Type 'add [book title]'\n\n")
+    }
+}
+
+function myBooks(client) {
+    client.write("\nYou recommend:\n\n")
+
+    for (i = 0; i < userArray.length; i++) {
+        if (userArray[i].username === username) { // Display only current users books
+            var myBooks = userArray[i].books;
+            for (j = 0; j < myBooks.length; j++) {
+                client.write(myBooks[j].title + "\n")
             }
         }
     }
+}
+
+function showRecommended(client) {
+    client.write("\nUsers recommend:\n\n")
+
+        for (i = 0; i < userArray.length; i++) {
+            if (userArray[i].username != username) { // Don't display current users books
+                for (j = 0; j < userArray[i].books.length; j++) {
+                    client.write(userArray[i].books[j].title + "\n");
+                }
+            }
+        }
+}
+
+function getHelp(client) {
+    client.write(colors.bold("Books App Instructions"));
+    client.write("\n\nTo create an account & log in:\n\n\t'new_user [username]' - Create a new account with a one word username\n\t'user [username]' - Log in to existing account\n\nOther commands:\n\n\t'add [book title]' - Add a book to your list\n\t'my_books' - Display all your recommended books\n\t'view_recommended' - Display all books recommended by other users\n\t'log_out' - Log out of the application\n\t'help' - Display all commands\n")
+}
+
+function logOut(client) {
+    client.write(colors.bold("Goodbye " + username + "!\n"));
+    user = undefined;
+    username = undefined;
+    client.end();
 }
 
 
