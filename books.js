@@ -1,6 +1,6 @@
 // Julia Becker
-// WDI - March 29, 2015
-// W02/D05 Homework
+// WDI - March 30, 2015
+// W03/D01 Homework
 
 var net = require('net');
 var fs = require('fs');
@@ -55,6 +55,7 @@ server.on('connection', function(client) {
         });
 });
 
+// Creates a new user
 function newUser(str, client) {
     if (inputArray.length === 2) {
         username = str.trim();
@@ -71,6 +72,7 @@ function newUser(str, client) {
     }
 }
 
+// Accesses existing user info
 function getUser(str, client) {
     if (inputArray.length > 1) {
         username = str.trim();
@@ -89,6 +91,7 @@ function getUser(str, client) {
     }
 }
 
+// Adds a book to a user's list
 function add(client) {
 
     if (inputArray.length > 1) {
@@ -121,6 +124,7 @@ function add(client) {
     }
 }
 
+// Grabs all books in a user's list
 function myBooks(client) {
     client.write("\nYou recommend:\n\n")
 
@@ -134,6 +138,7 @@ function myBooks(client) {
     }
 }
 
+// Grabs all books recommended by other users 
 function showRecommended(client) {
     client.write("\nUsers recommend:\n\n")
 
@@ -146,11 +151,13 @@ function showRecommended(client) {
         }
 }
 
+// Displays list of commands
 function getHelp(client) {
     client.write(colors.bold("Books App Instructions"));
     client.write("\n\nTo create an account & log in:\n\n\t'new_user [username]' - Create a new account with a one word username\n\t'user [username]' - Log in to existing account\n\nOther commands:\n\n\t'add [book title]' - Add a book to your list\n\t'my_books' - Display all your recommended books\n\t'view_recommended' - Display all books recommended by other users\n\t'log_out' - Log out of the application\n\t'help' - Display all commands\n")
 }
 
+// Logs a user out & ends connection
 function logOut(client) {
     client.write(colors.bold("Goodbye " + username + "!\n"));
     user = undefined;
